@@ -10,9 +10,9 @@
   { "forside_1": "div.card ", "forside_2": "en div der har classen card" },
   {
     "forside_1": "#card.featured p",
-    "forside_2": "En p der ligger noget der har id'et card og classen featured"
+    "forside_2": "En p der ligger i noget der har id'et card og classen featured"
   },
-  { "forside_1": "section > h2", "forside_2": "H2 direkte barn af H2" },
+  { "forside_1": "section > h2", "forside_2": "en H2 der er direkte barn af en section" },
   { "forside_1": "main > *", "forside_2": "Alle direkte børn af main" },
   { "forside_1": "article *", "forside_2": "alle elementer i article" },
   { "forside_1": "h2 + p", "forside_2": "P lige efter H2" },
@@ -29,7 +29,7 @@
     "forside_1": "p:nth-of-type(3)",
     "forside_2": "3. gang den støder på en p (også børnebørn osv)"
   },
-  { "forside_1": "a :hover ", "forside_2": "Hover et barn af linket" },
+  { "forside_1": "a :hover ", "forside_2": "Hover på alle børn i linket" },
   {
     "forside_1": "p ~ p ",
     "forside_2": "Alle p på nær første som har samme forældre"
@@ -48,10 +48,12 @@
   },
   {
     "forside_1": "ul:[class] > :first-child",
-    "forside_2": "direkte første barn af ul'er dern har en attribut der er en classe"
+    "note_1":"burde det ikke være ul[class] > :first-child",
+    "forside_2": "direkte første barn af ul'er der har en attribut der er en classe"
   },
   {
     "forside_1": ":nth-last-child(1 of .a)",
+    "note_2":"tag den første a bagfra?",
     "forside_2": "Tag den første a bagfra"
   },
   { "forside_1": "ul[class='prut']", "forside_2": "ul med classen prut" }
