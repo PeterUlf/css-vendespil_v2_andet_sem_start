@@ -47,13 +47,11 @@
     "forside_2": "Alle li på nær den første"
   },
   {
-    "forside_1": "ul:[class] > :first-child",
-    "note_1":"burde det ikke være ul[class] > :first-child",
+    "forside_1": "ul[class] > :first-child",
     "forside_2": "direkte første barn af ul'er der har en attribut der er en classe"
   },
   {
     "forside_1": ":nth-last-child(1 of .a)",
-    "note_2":"tag den første a bagfra?",
     "forside_2": "Tag den første a bagfra"
   },
   { "forside_1": "ul[class='prut']", "forside_2": "ul med classen prut" }
