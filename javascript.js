@@ -6,14 +6,12 @@ const urlParams = new URLSearchParams(queryString);
 const json = urlParams.get("json");
 
 if (!urlParams.has("json")) {
-  document
-    .querySelector("body")
-    .appendChild(
-      "<a href='index.html?json=datatyper.json'><h1>Hent datatypespil</h1></a> "
-    );
+  document.querySelector("body").innerHTML =
+    "<a href='./index.html?json=datatyper.json'><h1>Hent datatypespil</h1></a> ";
 }
 
 async function getData() {
+  document.querySelector("title").textContent = json;
   const response = await fetch(json);
   const data = await response.json();
   const pageNumbers = [1, 2];
@@ -35,7 +33,7 @@ function showCard(item, page) {
   const template = document.querySelector("#forside").content;
   const clone = template.cloneNode(true);
   console.log("page er ", page);
-  clone.querySelector(".explanation").textContent = item.forside_1;
+  clone.querySelector(".explanation").textContent = item["forside_" + page];
   document.querySelector("#side" + page).appendChild(clone);
 
   const template2 = document.querySelector("#bagside").content;
