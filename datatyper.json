@@ -1,7 +1,7 @@
 [
   {
     "forside_1": "fetch",
-    "forside_2": "En API til at hente ressourcer asynkront over netværket"
+    "forside_2": "En funktion til at hente ressourcer asynkront over netværket"
   },
   {
     "forside_1": "forEach",
@@ -9,11 +9,11 @@
   },
   {
     "forside_1": "let",
-    "forside_2": "En variabel deklareret med let er begrænset til den blok, hvor den er deklareret"
+    "forside_2": "En variabel der kan ændre værdi"
   },
   {
     "forside_1": "const",
-    "forside_2": "En variabel deklareret med const kan ikke ændre værdi efter tildeling"
+    "forside_2": "En variabel der ikke kan ændre værdi efter tildeling"
   },
   {
     "forside_1": "Array",
@@ -45,7 +45,7 @@
   },
   {
     "forside_1": "null",
-    "forside_2": "En værdi, der angiver fraværet af et objekt"
+    "forside_2": "En værdi, der angiver fraværet af 'noget'"
   },
   {
     "forside_1": "Promise",
@@ -53,11 +53,11 @@
   },
   {
     "forside_1": ".map",
-    "forside_2": "En metode, der opretter en ny array ved at anvende en funktion på hvert element i en eksisterende array"
+    "forside_2": "En metode, der opretter et nyt array ved at anvende en funktion på hvert element i en eksisterende array"
   },
   {
     "forside_1": ".filter",
-    "forside_2": "En metode, der opretter en ny array med alle elementer, der består af en given test"
+    "forside_2": "En metode, der opretter et nyt array med alle elementer, der består en given test"
   },
   {
     "forside_1": ".reduce",
