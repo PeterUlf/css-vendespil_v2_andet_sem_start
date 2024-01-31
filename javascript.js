@@ -5,6 +5,14 @@ const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 const json = urlParams.get("json");
 
+if (!urlParams.has("json")) {
+  document
+    .querySelector("body")
+    .appendChild(
+      "<a href='index.html?json=datatyper.json'><h1>Hent datatypespil</h1></a> "
+    );
+}
+
 async function getData() {
   const response = await fetch(json);
   const data = await response.json();
