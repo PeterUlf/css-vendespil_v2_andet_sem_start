@@ -1,6 +1,6 @@
 window.addEventListener("load", getData);
 
-//bruges til at hente url parameter
+//bruges til at hente url parametere
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 const json = urlParams.get("json");
