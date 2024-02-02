@@ -1,3 +1,6 @@
+.hide {
+  display: none;
+}
 section {
   font-family: "Monaco", monospace;
   margin: 0;
