@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>her kommer titlen fra url parametren :-)
+    <title>Forsiden
 
     </title>
     <link rel="stylesheet" href="styles.css">
@@ -14,9 +14,7 @@
 <body>
 
     <template id="links">
-        <a href='linket'>
-            <h1>Overskriften</h1>
-        </a>
+        <h1><a class='overskriften'>Overskriften</a> <a class="ret" target="_blank">ret </a></h1>
     </template>
 
     <template id="forside">
@@ -28,22 +26,23 @@
 
     <template id="bagside">
         <div class="square">
-            <div class="property"><img src="img/logo.jpg" alt="logo"></div>
+            <div class="bagside"><img class="logo" src="img/logo.jpg" alt="logo"></div>
+
         </div>
     </template>
-    <section id="link">
+    <section id="link" class="flex">
     </section>
 
-    <section id="side1">
+    <section id="side1" class="grid">
     </section>
 
-    <section id="bagside1">
+    <section id="bagside1" class="grid">
     </section>
 
-    <section id="side2">
+    <section id="side2" class="grid">
     </section>
 
-    <section id="bagside2">
+    <section id="bagside2" class="grid">
     </section>
 
     <!-- <script src="https://apis.google.com/js/api.js"></script> -->

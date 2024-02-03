@@ -1,4 +1,9 @@
+window.addEventListener("load", getData);
+console.log("fra localstorage" + localStorage.getItem("logo"));
+
+// bruges til ...
 let formattedData;
+let bagsideLogo;
 
 // Brukes til å hente URL-parameteren
 const queryString = window.location.search;
@@ -32,11 +37,6 @@ async function getDataFromSheet(sheetName) {
 async function getData() {
   console.log("json er", json);
 
-  // if (!json) {
-  //   console.error("Mangler JSON-parameteren i URL-en");
-  //   return;
-  // }
-
   try {
     // await getSheetNames();
     await getDataFromSheet(json);
@@ -52,27 +52,39 @@ async function getData() {
   });
 }
 
-window.addEventListener("load", getData);
-
 function showCard(item, page) {
   if (!urlParams.has("json")) {
-    console.log("iffffff");
+    //hvis der ikke er en url parameter (forsiden)
 
     const template = document.querySelector("#links").content;
     const clone = template.cloneNode(true);
 
     console.log("clone: ", clone);
-    if (page === 1) {
-      clone.querySelector("H1").textContent = item["forside_1"];
-      clone.querySelector("a").href = `index.html?json=${item["forside_1"]}`;
+    if (page === 1 && item["forside_1"].slice(0, 4) === "spil") {
+      clone.querySelector(".overskriften").textContent = item["forside_1"];
+      clone.querySelector("a.ret").href = item["forside_2"];
+      clone.querySelector(
+        "a.overskriften"
+      ).href = `index.html?json=${item["forside_1"]}`;
       document.querySelector("#link").appendChild(clone);
-    } else {
-      clone.querySelector("H1").textContent = item["forside_1"] + " RET";
-      clone.querySelector("a").href = item["forside_2"];
-      document.querySelector("#link").appendChild(clone);
+    } else if (item["forside_1"] === "bagsidelogo") {
+      localStorage.clear;
+      localStorage.setItem("logo", item["forside_2"]);
+
+      localStorage.clear;
+
+      //clone.querySelector("img.logo").src = item["forside_2"];
+      // clone.querySelector("a").href = item["forside_2"];
+      // document.querySelector("#link").appendChild(clone);
     }
   } else {
     document.querySelector("#link").classList = "hide";
+    console.log("her er en json", json);
+
+    //hvis der er en json variabel i url sættes title til json variablens indhold
+    document.querySelector("title").textContent = json;
+    //skjuler linksectionen hvis der er json variabel
+
     const template = document.querySelector("#forside").content;
     const clone = template.cloneNode(true);
     clone.querySelector(".explanation").textContent = item["forside_" + page];
@@ -80,6 +92,9 @@ function showCard(item, page) {
 
     const template2 = document.querySelector("#bagside").content;
     const clone2 = template2.cloneNode(true);
+    if (localStorage.getItem("logo") != "standard") {
+      clone2.querySelector(".logo").src = localStorage.getItem("logo");
+    }
     document.querySelector("#bagside" + page).appendChild(clone2);
   }
 }
