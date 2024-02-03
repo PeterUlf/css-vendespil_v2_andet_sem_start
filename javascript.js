@@ -32,6 +32,7 @@ async function getData() {
       });
     });
 
+    generateback();
     //find bagsideLogo
   } else {
     formattedDataFirstSheet.forEach((menuItem) => {
@@ -129,13 +130,38 @@ function showCard(item, page) {
 
   const template = document.querySelector("#forside").content;
   const clone = template.cloneNode(true);
-  clone.querySelector(".explanation").textContent = item["value_" + page];
+  //
+  if (item["value_" + page].slice(0, 4) === "http") {
+    //hvis det starter med http er det nok et billede og skal sættes ind som sådan
+    clone.querySelector(".explanation").innerHTML = `<img src="${
+      item["value_" + page]
+    }">`;
+  } else {
+    clone.querySelector(".explanation").textContent = item["value_" + page];
+  }
+
   document.querySelector("#side" + page).appendChild(clone);
 
-  const template2 = document.querySelector("#bagside").content;
-  const clone2 = template2.cloneNode(true);
+  // const template2 = document.querySelector("#bagside").content;
+  // const clone2 = template2.cloneNode(true);
 
-  clone2.querySelector(".logo").src = bagsideLogoet();
+  // clone2.querySelector(".logo").src = bagsideLogoet();
 
-  document.querySelector("#bagside" + page).appendChild(clone2);
+  // document.querySelector("#bagside" + page).appendChild(clone2);
+}
+
+function generateback() {
+  console.log("generateback");
+  for (let i = 1; i <= 20; i++) {
+    const template = document.querySelector("#bagside").content;
+    const clone = template.cloneNode(true);
+    clone.querySelector(".logo").src = bagsideLogoet();
+    document.querySelector("#bagside1").appendChild(clone);
+  }
+  for (let i = 1; i <= 20; i++) {
+    const template = document.querySelector("#bagside").content;
+    const clone = template.cloneNode(true);
+    clone.querySelector(".logo").src = bagsideLogoet();
+    document.querySelector("#bagside2").appendChild(clone);
+  }
 }

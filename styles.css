@@ -1,3 +1,9 @@
+.explanation img {
+  width: 100%;
+  object-fit: cover;
+  aspect-ratio: 1 / 1;
+}
+
 section {
   font-family: "Monaco", monospace;
   margin: 0;
@@ -29,7 +35,7 @@ section {
   color: red;
 }
 .explanation {
-  font-size: 0.6em;
+  font-size: 0.5em;
   color: #333;
 }
 
