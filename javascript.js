@@ -24,10 +24,15 @@ async function getData() {
   }
 
   const pageNumbers = [1, 2];
+  // let test = urlParams.has("json");
+  // console.log("test", test);
 
   if (urlParams.has("json")) {
     pageNumbers.forEach((pageNumber) => {
       formattedData.forEach((item) => {
+        // console.log("VIGTIGT");
+        // console.log("item er ", item);
+        // console.log("page er ", pageNumber);
         showCard(item, pageNumber);
       });
     });
@@ -78,8 +83,11 @@ async function getDataFromFirstSheet(sheetName) {
 }
 
 async function getDataFromSheet(sheetName) {
+  console.log("getDataFromSheet hvor sheetname er ", sheetName);
   const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&tq=SELECT A, B LIMIT 20&sheet=${sheetName}`;
   // console.log("url er", url);
+  console.log("SPREDSHEETID", spreadsheetId);
+
   try {
     const response = await fetch(url);
     const text = await response.text();
@@ -87,6 +95,7 @@ async function getDataFromSheet(sheetName) {
       /(?<=google\.visualization\.Query\.setResponse\()(.+)(?=\);)/s
     );
     const data = JSON.parse(jsonText[0]);
+    // console.log("data er", data);
 
     formattedData = data.table.rows.map((row) => ({
       // Her formaterer jeg data
@@ -121,6 +130,8 @@ function generateMenu(menuItem) {
 }
 
 function showCard(item, page) {
+  console.log("item er ", item);
+  console.log("page er ", page);
   document.querySelector("#link").classList = "hide";
   console.log("her er en json", json);
 
