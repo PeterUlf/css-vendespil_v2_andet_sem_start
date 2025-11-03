@@ -161,18 +161,18 @@ function showCard(item, page) {
   // document.querySelector("#bagside" + page).appendChild(clone2);
 }
 
-// function generateback() {
-//   console.log("generateback");
-//   for (let i = 1; i <= 20; i++) {
-//     const template = document.querySelector("#bagside").content;
-//     const clone = template.cloneNode(true);
-//     clone.querySelector(".logo").src = bagsideLogoet();
-//     document.querySelector("#bagside1").appendChild(clone);
-//   }
-//   for (let i = 1; i <= 20; i++) {
-//     const template = document.querySelector("#bagside").content;
-//     const clone = template.cloneNode(true);
-//     clone.querySelector(".logo").src = bagsideLogoet();
-//     document.querySelector("#bagside2").appendChild(clone);
-//   }
-// }
+function generateback() {
+  console.log("generateback");
+  for (let i = 1; i <= 20; i++) {
+    const template = document.querySelector("#bagside").content;
+    const clone = template.cloneNode(true);
+    clone.querySelector(".logo").src = bagsideLogoet();
+    document.querySelector("#bagside1").appendChild(clone);
+  }
+  for (let i = 1; i <= 20; i++) {
+    const template = document.querySelector("#bagside").content;
+    const clone = template.cloneNode(true);
+    clone.querySelector(".logo").src = bagsideLogoet();
+    document.querySelector("#bagside2").appendChild(clone);
+  }
+}
