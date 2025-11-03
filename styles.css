@@ -1,5 +1,15 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  padding: 20px;
+}
+
 .explanation img {
-  width: 100%;
+  width: 98%;
   object-fit: cover;
   aspect-ratio: 1 / 1;
 }
@@ -11,12 +21,20 @@ section {
   background-color: #f4f4f4;
 
   grid-template-columns: repeat(4, 1fr);
+
   gap: 10px;
   align-content: flex-start;
   justify-content: space-around;
   min-height: 99vh;
   box-sizing: border-box;
 }
+
+/* Nedenstående bruges for at vende rækkefølgen på side2, så jeg kan printe på begge sider og billedet kommer til at passe med navnet */
+#side2 {
+  direction: rtl;
+}
+/* slut */
+
 #link {
   flex-direction: column;
 }
@@ -25,7 +43,7 @@ section {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 5px;
   background-color: #fff;
   border: 1px solid #ddd;
   text-align: center;
@@ -67,3 +85,10 @@ img {
 .hide {
   display: none;
 }
+
+/* @media print {
+  .page,
+  .page-break {
+    break-after: page;
+  }
+} */
