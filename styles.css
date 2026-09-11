@@ -17,23 +17,40 @@ body {
 section {
   font-family: "Monaco", monospace;
   margin: 0;
-  padding: 0;
-  background-color: #f4f4f4;
+  padding: 10px;
+  background-color: #adadad;
 
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 
   gap: 10px;
   align-content: flex-start;
   justify-content: space-around;
-  min-height: 99vh;
   box-sizing: border-box;
 }
 
-/* Nedenstående bruges for at vende rækkefølgen på side2, så jeg kan printe på begge sider og billedet kommer til at passe med navnet */
-#side2 {
-  direction: rtl;
+.card-page {
+  --columns: 4;
+  --rows: 6;
+  --card-size: 43mm;
+  --card-gap: 10px;
+  width: 190mm;
+  max-width: 100%;
+  margin: 0 auto 20px;
+  break-inside: avoid;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  gap: var(--card-gap);
 }
-/* slut */
+
+.group-heading {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  height: 8mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1.2;
+}
 
 #link {
   flex-direction: column;
@@ -48,12 +65,23 @@ section {
   border: 1px solid #ddd;
   text-align: center;
   font-size: 1.2em;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
   box-sizing: border-box;
   aspect-ratio: 1 / 1;
   color: red;
 }
+
+.empty-card {
+  visibility: hidden;
+}
+
 .explanation {
-  font-size: 0.5em;
+  width: 100%;
+  font-size: 1em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
   color: #333;
 }
 
@@ -64,14 +92,37 @@ section {
 img {
   width: 100%;
 }
-#bagside2 img {
-  width: 100%;
-  filter: grayscale();
+@page {
+  size: A4 portrait;
+  margin: 10mm;
 }
 
 @media print {
-  section:not(:last-child) {
-    /* page-break-after: always; */
+  body {
+    padding: 0;
+  }
+
+  section {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .card-page {
+    /* 4 × 6 kort på 43 mm passer på A4 med padding og mellemrum. */
+    height: 277mm;
+    max-width: none;
+    margin: 0;
+    grid-template-columns: repeat(var(--columns), var(--card-size));
+    grid-template-rows: repeat(var(--rows), var(--card-size));
+    justify-content: center;
+  }
+
+  .card-page.has-group {
+    grid-template-rows: var(--group-tracks);
+  }
+
+  .card-page:not(:last-child) {
+    break-after: page;
   }
 }
 
@@ -85,10 +136,3 @@ img {
 .hide {
   display: none;
 }
-
-/* @media print {
-  .page,
-  .page-break {
-    break-after: page;
-  }
-} */

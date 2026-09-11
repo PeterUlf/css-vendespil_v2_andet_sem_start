@@ -1,178 +1,286 @@
 window.addEventListener("load", getData);
+window.addEventListener("beforeprint", fitCardText);
+window.addEventListener("afterprint", fitCardText);
+window.addEventListener("resize", fitCardText);
 
-// bruges til ...
-let formattedData; //indeholder data
-let formattedDataFirstSheet; //indeholder data
-
-let bagsideLogo;
-
-// Brukes til å hente URL-parameteren
-const queryString = window.location.search;
-const urlParams = new URLSearchParams(queryString);
+const urlParams = new URLSearchParams(window.location.search);
 const json = urlParams.get("json");
 const spreadsheetId = "1QIzBRetFBQxjjlDb202p9Ej1qIR1PctFeWgMfPaj97A";
+const cardsPerPage = 24;
+const columnsPerPage = 4;
 
 async function getData() {
-  //console.log("json er", json);
+  const status = document.querySelector("#status");
 
   try {
-    // await getSheetNames();
-    await getDataFromSheet(json);
-    await getDataFromFirstSheet("0");
-  } catch (error) {
-    console.error("Fejl ved hentning af data:", error);
-  }
+    const items = await getDataFromSheet(json ?? "0");
 
-  const pageNumbers = [1, 2];
-  // let test = urlParams.has("json");
-  // console.log("test", test);
+    if (urlParams.has("json")) {
+      document.title = json;
+      document.querySelector("#link").classList.add("hide");
 
-  if (urlParams.has("json")) {
-    pageNumbers.forEach((pageNumber) => {
-      formattedData.forEach((item) => {
-        // console.log("VIGTIGT");
-        // console.log("item er ", item);
-        // console.log("page er ", pageNumber);
-        showCard(item, pageNumber);
+      // Bevar navnet og kortets plads, selvom billedcellen er tom.
+      const pairs = items.filter((item) => {
+        if (item.value_1 && item.value_2) return true;
+        const name = item.value_1 || item.value_2;
+        return name && !isImageUrl(name);
       });
-    });
+      generatePages(pairs);
 
-    generateback();
-    //find bagsideLogo
-  } else {
-    formattedDataFirstSheet.forEach((menuItem) => {
-      generateMenu(menuItem);
-    });
-  }
-}
-
-function bagsideLogoet() {
-  console.log("bagsideLogoet");
-  let bagsidelogoObj = formattedDataFirstSheet.find(
-    (o) => o.value_1 === "bagsidelogo"
-  );
-
-  if (bagsidelogoObj.value_2) {
-    return bagsidelogoObj.value_2;
-  } else {
-    return "./img/logo.jpg";
-  }
-}
-
-async function getDataFromFirstSheet(sheetName) {
-  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&tq=SELECT A, B LIMIT 20&sheet=${sheetName}`;
-  //console.log("url er", url);
-  try {
-    const response = await fetch(url);
-    const text = await response.text();
-    const jsonText = text.match(
-      /(?<=google\.visualization\.Query\.setResponse\()(.+)(?=\);)/s
-    );
-    const data = JSON.parse(jsonText[0]);
-
-    formattedDataFirstSheet = data.table.rows.map((row) => ({
-      // Her formaterer jeg data
-      value_1: row.c[0].v,
-      value_2: row.c[1].v,
-    }));
-
-    //console.log("formattedDataFirstSheet ,", formattedDataFirstSheet);
+      if (pairs.length === 0) {
+        status.textContent = "Der er ingen billed- og tekstpar i dette ark.";
+        status.hidden = false;
+      }
+    } else {
+      items.forEach(generateMenu);
+    }
   } catch (error) {
     console.error("Fejl ved hentning af data:", error);
+    status.textContent = "Kortene kunne ikke hentes. Prøv at genindlæse siden.";
+    status.hidden = false;
   }
 }
 
 async function getDataFromSheet(sheetName) {
-  console.log("getDataFromSheet hvor sheetname er ", sheetName);
-  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&tq=SELECT A, B LIMIT 20&sheet=${sheetName}`;
-  // console.log("url er", url);
-  console.log("SPREDSHEETID", spreadsheetId);
+  const params = new URLSearchParams({
+    tqx: "out:json",
+    tq: urlParams.has("json") ? "SELECT A, B, C" : "SELECT A, B",
+    sheet: sheetName,
+  });
+  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?${params}`;
+  const response = await fetch(url);
 
-  try {
-    const response = await fetch(url);
-    const text = await response.text();
-    const jsonText = text.match(
-      /(?<=google\.visualization\.Query\.setResponse\()(.+)(?=\);)/s
-    );
-    const data = JSON.parse(jsonText[0]);
-    // console.log("data er", data);
-
-    formattedData = data.table.rows.map((row) => ({
-      // Her formaterer jeg data
-      value_1: row.c[0].v,
-      value_2: row.c[1].v,
-    }));
-
-    // console.log(formattedData);
-  } catch (error) {
-    console.error("Fejl ved hentning af data:", error);
+  if (!response.ok) {
+    throw new Error(`Regnearket svarede med ${response.status}`);
   }
+
+  const text = await response.text();
+  const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
+  if (!match) {
+    throw new Error("Regnearket returnerede et ukendt format.");
+  }
+
+  const data = JSON.parse(match[1]);
+  if (data.status === "error" || !data.table) {
+    throw new Error("Regnearket kunne ikke læses.");
+  }
+
+  return data.table.rows.map((row) => ({
+    value_1: String(row.c?.[0]?.v ?? "").trim(),
+    value_2: String(row.c?.[1]?.v ?? "").trim(),
+    group: String(row.c?.[2]?.v ?? "").trim(),
+  }));
 }
 
 function generateMenu(menuItem) {
-  //console.log("generateMenu");
-  if (!urlParams.has("json")) {
-    //hvis der ikke er en url parameter (forsiden)
+  if (!menuItem.value_1.startsWith("spil")) return;
 
-    const template = document.querySelector("#links").content;
-    const clone = template.cloneNode(true);
+  const clone = document.querySelector("#links").content.cloneNode(true);
+  const link = clone.querySelector(".overskriften");
+  link.textContent = menuItem.value_1;
+  link.href = `index.html?json=${encodeURIComponent(menuItem.value_1)}`;
+  clone.querySelector("a.ret").href = menuItem.value_2;
+  document.querySelector("#link").appendChild(clone);
+}
 
-    if (menuItem["value_1"].slice(0, 4) === "spil") {
-      console.log("spil: ", clone);
-      clone.querySelector(".overskriften").textContent = menuItem["value_1"];
-      clone.querySelector("a.ret").href = menuItem["value_2"];
-      clone.querySelector(
-        "a.overskriften"
-      ).href = `index.html?json=${menuItem["value_1"]}`;
-      document.querySelector("#link").appendChild(clone);
+function generatePages(pairs) {
+  const pages = document.querySelector("#pages");
+  pages.replaceChildren();
+  const fragment = document.createDocumentFragment();
+  const groups = new Map();
+  for (const pair of pairs) {
+    const group = pair.group || "";
+    if (!groups.has(group)) groups.set(group, []);
+    groups.get(group).push(pair);
+  }
+
+  // Sortér gruppenumrene naturligt (2 før 10). Rækker uden gruppe kommer sidst.
+  const sortedGroups = [...groups].sort(([a], [b]) => {
+    if (!a) return 1;
+    if (!b) return -1;
+    return a.localeCompare(b, "da", { numeric: true });
+  });
+  const blocks = sortedGroups.map(([group, groupPairs]) => {
+    const cards = groupPairs.flatMap((pair) => {
+      // Billedet står først, også når det mangler eller kolonnerne er byttet.
+      const imageInSecondColumn = isImageUrl(pair.value_2) || !pair.value_2;
+      const imageValue = imageInSecondColumn ? pair.value_2 : pair.value_1;
+      const nameValue = imageInSecondColumn ? pair.value_1 : pair.value_2;
+      return [
+        { value: imageValue, pairedValue: nameValue },
+        { value: nameValue, pairedValue: imageValue },
+      ];
+    });
+    return { group, cards };
+  });
+  let batchNumber = 0;
+  const appendSheet = (sheetBlocks, layout = null) => {
+    batchNumber++;
+    fragment.appendChild(createPage(sheetBlocks, false, batchNumber, layout));
+    fragment.appendChild(createPage(sheetBlocks, true, batchNumber, layout));
+  };
+
+  for (let index = 0; index < blocks.length; index++) {
+    const block = blocks[index];
+    if (!block.group) {
+      // Uden gruppenummer fortsætter det hidtidige layout med 24 kort pr. side.
+      for (let offset = 0; offset < block.cards.length; offset += cardsPerPage) {
+        appendSheet([{ group: "", cards: block.cards.slice(offset, offset + cardsPerPage) }]);
+      }
+      continue;
+    }
+
+    const sheetBlocks = [block];
+    const next = blocks[index + 1];
+    // To efterfølgende grupper kan dele arket, hvis de højst kræver seks kortrækker.
+    if (next?.group && Math.ceil(block.cards.length / columnsPerPage) + Math.ceil(next.cards.length / columnsPerPage) <= 6) {
+      sheetBlocks.push(next);
+      index++;
+    }
+    appendSheet(sheetBlocks, getGroupLayout(sheetBlocks));
+  }
+
+  pages.appendChild(fragment);
+  fitCardText();
+}
+
+function getGroupLayout(blocks) {
+  const mmPerPixel = 25.4 / 96;
+  const padding = 20 * mmPerPixel;
+  const headingHeight = 8;
+  const cardCount = blocks.reduce((sum, block) => sum + block.cards.length, 0);
+  let bestLayout;
+
+  // Et lige antal kolonner holder billede og navn ved siden af hinanden.
+  const maxColumns = Math.max(columnsPerPage, Math.ceil(Math.sqrt(cardCount)) * 2);
+  for (let columns = columnsPerPage; columns <= maxColumns; columns += 2) {
+    const rows = Math.max(6, blocks.reduce((sum, block) => sum + Math.ceil(block.cards.length / columns), 0));
+    // Meget store grupper får også mindre mellemrum, så alt kan være på A4.
+    const gap = Math.min(10, 140 / Math.max(rows, columns));
+    const gapMm = gap * mmPerPixel;
+    const width = (190 - padding - (columns - 1) * gapMm) / columns;
+    const height = (277 - padding - blocks.length * headingHeight - (rows + blocks.length - 1) * gapMm) / rows;
+    const size = Math.floor(Math.min(41, width, height) * 10) / 10;
+
+    if (!bestLayout || size > bestLayout.size) {
+      bestLayout = { columns, rows, size, gap };
     }
   }
+  return bestLayout;
 }
 
-function showCard(item, page) {
-  console.log("item er ", item);
-  console.log("page er ", page);
-  document.querySelector("#link").classList = "hide";
-  console.log("her er en json", json);
+function fitCardText() {
+  document.querySelectorAll(".card-front .explanation").forEach(fitTextToCard);
+}
 
-  //hvis der er en json variabel i url sættes title til json variablens indhold
-  document.querySelector("title").textContent = json;
-  //skjuler linksectionen hvis der er json variabel
+function fitTextToCard(text) {
+  if (text.querySelector("img")) return;
 
-  const template = document.querySelector("#forside").content;
-  const clone = template.cloneNode(true);
-  //
-  if (item["value_" + page].slice(0, 4) === "http") {
-    //hvis det starter med http er det nok et billede og skal sættes ind som sådan
-    clone.querySelector(".explanation").innerHTML = `<img src="${
-      item["value_" + page]
-    }">`;
+  // Bevar den store skrift, men tilpas lange tekster til det kvadratiske kort.
+  text.style.removeProperty("font-size");
+  const card = text.closest(".square");
+  const style = getComputedStyle(card);
+  const availableHeight = card.clientWidth - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+  if (text.scrollHeight <= availableHeight) return;
+
+  let min = 1;
+  let max = parseFloat(getComputedStyle(text).fontSize);
+  for (let step = 0; step < 8; step++) {
+    const size = (min + max) / 2;
+    text.style.fontSize = `${size}px`;
+    if (text.scrollHeight <= availableHeight) {
+      min = size;
+    } else {
+      max = size;
+    }
+  }
+  text.style.fontSize = `${Math.floor(min * 10) / 10}px`;
+}
+
+function isImageUrl(value) {
+  return /^https?:\/\//i.test(value);
+}
+
+function fillCard(explanation, value, pairedValue) {
+  const personName = isImageUrl(pairedValue) ? "personen" : pairedValue;
+  const missingImageText = `Billede af ${personName} mangler`;
+
+  if (!value) {
+    explanation.textContent = missingImageText;
+  } else if (isImageUrl(value)) {
+    const img = document.createElement("img");
+    img.alt = `Billede af ${personName}`;
+    img.addEventListener("error", () => {
+      explanation.textContent = missingImageText;
+      fitTextToCard(explanation);
+    }, { once: true });
+    explanation.replaceChildren(img);
+    img.src = value;
   } else {
-    clone.querySelector(".explanation").textContent = item["value_" + page];
+    explanation.textContent = value;
   }
-
-  document.querySelector("#side" + page).appendChild(clone);
-
-  // const template2 = document.querySelector("#bagside").content;
-  // const clone2 = template2.cloneNode(true);
-
-  // clone2.querySelector(".logo").src = bagsideLogoet();
-
-  // document.querySelector("#bagside" + page).appendChild(clone2);
 }
 
-function generateback() {
-  console.log("generateback");
-  for (let i = 1; i <= 20; i++) {
-    const template = document.querySelector("#bagside").content;
-    const clone = template.cloneNode(true);
-    clone.querySelector(".logo").src = bagsideLogoet();
-    document.querySelector("#bagside1").appendChild(clone);
+function createPage(blocks, isBack, batchNumber, layout = null) {
+  const section = document.createElement("section");
+  section.className = `card-page grid ${isBack ? "card-back" : "card-front"}`;
+  const label = layout ? blocks.map((block) => `Gruppe ${block.group}`).join(", ") : `Ark ${batchNumber}`;
+  section.setAttribute("aria-label", `${label}, ${isBack ? "bagside" : "forside"}`);
+  const columns = layout?.columns ?? columnsPerPage;
+  const rows = layout?.rows ?? cardsPerPage / columnsPerPage;
+  const blockRows = blocks.map((block) => Math.ceil(block.cards.length / columns));
+  blockRows[blockRows.length - 1] += rows - blockRows.reduce((sum, count) => sum + count, 0);
+
+  if (layout) {
+    section.classList.add("has-group");
+    section.style.setProperty("--columns", columns);
+    section.style.setProperty("--rows", layout.rows);
+    section.style.setProperty("--card-size", `${layout.size}mm`);
+    section.style.setProperty("--card-gap", `${layout.gap}px`);
+    section.style.setProperty("--group-tracks", blockRows.map((count) => `8mm repeat(${count}, var(--card-size))`).join(" "));
   }
-  for (let i = 1; i <= 20; i++) {
-    const template = document.querySelector("#bagside").content;
-    const clone = template.cloneNode(true);
-    clone.querySelector(".logo").src = bagsideLogoet();
-    document.querySelector("#bagside2").appendChild(clone);
-  }
+
+  // Bagsidens kolonner spejles til dobbeltsidet print langs den lange kant.
+  const mirrored = isBack;
+
+  let gridRow = 1;
+  blocks.forEach((block, blockIndex) => {
+    if (layout) {
+      const heading = document.createElement(isBack ? "div" : "h2");
+      heading.className = "group-heading";
+      heading.style.gridRow = gridRow++;
+      if (isBack) {
+        // Reservér samme plads over kortene på bagsiden til dobbeltsidet print.
+        heading.setAttribute("aria-hidden", "true");
+      } else {
+        heading.textContent = `Gruppe ${block.group}`;
+      }
+      section.appendChild(heading);
+    }
+
+    for (let index = 0; index < blockRows[blockIndex] * columns; index++) {
+      let card;
+      if (index < block.cards.length) {
+        const template = document.querySelector(isBack ? "#bagside" : "#forside");
+        card = template.content.firstElementChild.cloneNode(true);
+        if (!isBack) {
+          const { value, pairedValue } = block.cards[index];
+          fillCard(card.querySelector(".explanation"), value, pairedValue);
+        }
+      } else {
+        // Tomme positioner spejles også, både mellem grupper og nederst på arket.
+        card = document.createElement("div");
+        card.className = "square empty-card";
+        card.setAttribute("aria-hidden", "true");
+      }
+
+      const column = index % columns;
+      card.style.gridRow = gridRow + Math.floor(index / columns);
+      card.style.gridColumn = mirrored ? columns - column : column + 1;
+      section.appendChild(card);
+    }
+    gridRow += blockRows[blockIndex];
+  });
+
+  return section;
 }
