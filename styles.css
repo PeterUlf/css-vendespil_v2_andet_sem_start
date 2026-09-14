@@ -8,6 +8,80 @@ body {
   padding: 20px;
 }
 
+#print-controls:not([hidden]) {
+  width: 190mm;
+  max-width: 100%;
+  margin: 0 auto 24px;
+  padding: 16px;
+  border: 1px solid #dce3eb;
+  border-radius: 14px;
+  background: #f4f6f9;
+  box-shadow: 0 3px 12px rgb(24 61 103 / 7%);
+}
+
+.print-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.image-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #dce3eb;
+}
+
+#print-controls button {
+  min-width: 0;
+  min-height: 56px;
+  padding: 12px 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #183d67;
+  color: #fff;
+  font: 600 14px/1.4 system-ui, sans-serif;
+  cursor: pointer;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+#print-controls button:hover:not(:disabled) {
+  background: #285580;
+  box-shadow: 0 2px 6px rgb(24 61 103 / 18%);
+}
+
+#print-controls #refresh-images {
+  min-height: 44px;
+  background: #a54a12;
+}
+
+#print-controls #refresh-images:hover:not(:disabled) {
+  background: #873a0e;
+  box-shadow: 0 2px 6px rgb(135 58 14 / 18%);
+}
+
+#print-controls button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+#print-controls button:focus-visible {
+  outline: 3px solid #e99a20;
+  outline-offset: 3px;
+}
+
+@media screen and (max-width: 600px) {
+  .print-options {
+    grid-template-columns: 1fr;
+  }
+
+  #print-controls button {
+    min-height: 48px;
+    width: 100%;
+  }
+}
+
 .explanation img {
   width: 98%;
   object-fit: cover;
@@ -98,6 +172,10 @@ img {
 }
 
 @media print {
+  #print-controls {
+    display: none !important;
+  }
+
   body {
     padding: 0;
   }

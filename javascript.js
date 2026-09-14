@@ -8,6 +8,57 @@ const json = urlParams.get("json");
 const spreadsheetId = "1QIzBRetFBQxjjlDb202p9Ej1qIR1PctFeWgMfPaj97A";
 const cardsPerPage = 24;
 const columnsPerPage = 4;
+let currentPairs = [];
+let currentPrintLayout = "two";
+const cardImageLoads = new WeakMap();
+
+document.querySelectorAll("[data-print-layout]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const buttons = document.querySelectorAll("#print-controls button");
+    buttons.forEach((control) => { control.disabled = true; });
+    const label = button.textContent;
+    button.textContent = "Klargør billeder…";
+    try {
+      generatePages(currentPairs, button.dataset.printLayout);
+      // Vent på både cache, billedbehandling og logoer før printdialogen åbnes.
+      await waitForPageImages();
+      fitCardText();
+      window.print();
+    } finally {
+      button.textContent = label;
+      buttons.forEach((control) => { control.disabled = false; });
+    }
+  });
+});
+
+document.querySelector("#refresh-images").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  const buttons = document.querySelectorAll("#print-controls button");
+  buttons.forEach((control) => { control.disabled = true; });
+  const label = button.textContent;
+  button.textContent = "Henter billeder…";
+  try {
+    const urls = currentPairs.flatMap((pair) => [pair.value_1, pair.value_2]).filter(isImageUrl);
+    await refreshCardImageSources(urls);
+    generatePages(currentPairs, currentPrintLayout);
+    await waitForPageImages();
+    fitCardText();
+  } catch (error) {
+    console.error("Fejl ved opdatering af billeder:", error);
+    const status = document.querySelector("#status");
+    status.textContent = "Billederne kunne ikke opdateres. Prøv igen.";
+    status.hidden = false;
+  } finally {
+    button.textContent = label;
+    buttons.forEach((control) => { control.disabled = false; });
+  }
+});
+
+function waitForPageImages() {
+  return Promise.all([...document.querySelectorAll("#pages img")].map((img) =>
+    cardImageLoads.get(img) ?? img.decode().catch(() => {})
+  ));
+}
 
 async function getData() {
   const status = document.querySelector("#status");
@@ -25,7 +76,9 @@ async function getData() {
         const name = item.value_1 || item.value_2;
         return name && !isImageUrl(name);
       });
+      currentPairs = pairs;
       generatePages(pairs);
+      document.querySelector("#print-controls").hidden = pairs.length === 0;
 
       if (pairs.length === 0) {
         status.textContent = "Der er ingen billed- og tekstpar i dette ark.";
@@ -83,7 +136,8 @@ function generateMenu(menuItem) {
   document.querySelector("#link").appendChild(clone);
 }
 
-function generatePages(pairs) {
+function generatePages(pairs, printLayout = "two") {
+  currentPrintLayout = printLayout;
   const pages = document.querySelector("#pages");
   pages.replaceChildren();
   const fragment = document.createDocumentFragment();
@@ -117,8 +171,22 @@ function generatePages(pairs) {
   const appendSheet = (sheetBlocks, layout = null) => {
     batchNumber++;
     fragment.appendChild(createPage(sheetBlocks, false, batchNumber, layout));
-    fragment.appendChild(createPage(sheetBlocks, true, batchNumber, layout));
+    // Kun layoutet uden grupper skal have bagsider til dobbeltsidet print.
+    if (printLayout === "rows") {
+      fragment.appendChild(createPage(sheetBlocks, true, batchNumber, layout));
+    }
   };
+
+  if (printLayout === "rows") {
+    // Fyld seks rækker på tværs af grupper uden overskrifter eller gruppemellemrum.
+    const cards = blocks.flatMap((block) => block.cards);
+    for (let offset = 0; offset < cards.length; offset += cardsPerPage) {
+      appendSheet([{ group: "", cards: cards.slice(offset, offset + cardsPerPage) }]);
+    }
+    pages.appendChild(fragment);
+    fitCardText();
+    return;
+  }
 
   for (let index = 0; index < blocks.length; index++) {
     const block = blocks[index];
@@ -132,8 +200,8 @@ function generatePages(pairs) {
 
     const sheetBlocks = [block];
     const next = blocks[index + 1];
-    // To efterfølgende grupper kan dele arket, hvis de højst kræver seks kortrækker.
-    if (next?.group && Math.ceil(block.cards.length / columnsPerPage) + Math.ceil(next.cards.length / columnsPerPage) <= 6) {
+    // Tilpas kortstørrelsen, så de to grupper altid kan dele et ark.
+    if (printLayout === "two" && next?.group) {
       sheetBlocks.push(next);
       index++;
     }
@@ -210,12 +278,21 @@ function fillCard(explanation, value, pairedValue) {
   } else if (isImageUrl(value)) {
     const img = document.createElement("img");
     img.alt = `Billede af ${personName}`;
-    img.addEventListener("error", () => {
-      explanation.textContent = missingImageText;
-      fitTextToCard(explanation);
-    }, { once: true });
     explanation.replaceChildren(img);
-    img.src = value;
+    const loaded = getCardImageSource(value).then(async (source) => {
+      img.src = source;
+      try {
+        await img.decode();
+      } catch (error) {
+        if (source === value) throw error;
+        img.src = value;
+        await img.decode();
+      }
+    }).catch(() => {
+      explanation.textContent = missingImageText;
+      if (explanation.isConnected) fitTextToCard(explanation);
+    });
+    cardImageLoads.set(img, loaded);
   } else {
     explanation.textContent = value;
   }
