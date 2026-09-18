@@ -160,6 +160,9 @@ function generatePages(pairs, printLayout = "two") {
       const imageInSecondColumn = isImageUrl(pair.value_2) || !pair.value_2;
       const imageValue = imageInSecondColumn ? pair.value_2 : pair.value_1;
       const nameValue = imageInSecondColumn ? pair.value_1 : pair.value_2;
+      if (printLayout === "two" || printLayout === "one") {
+        return [{ value: imageValue, pairedValue: nameValue, overlay: true }];
+      }
       return [
         { value: imageValue, pairedValue: nameValue },
         { value: nameValue, pairedValue: imageValue },
@@ -188,47 +191,51 @@ function generatePages(pairs, printLayout = "two") {
     return;
   }
 
-  for (let index = 0; index < blocks.length; index++) {
-    const block = blocks[index];
-    if (!block.group) {
-      // Uden gruppenummer fortsætter det hidtidige layout med 24 kort pr. side.
-      for (let offset = 0; offset < block.cards.length; offset += cardsPerPage) {
-        appendSheet([{ group: "", cards: block.cards.slice(offset, offset + cardsPerPage) }]);
+  if (printLayout === "two") {
+    // Fyld hvert ark i grupperækkefølge med læsbare kort; del aldrig en gruppe.
+    let sheetBlocks = [];
+    for (const block of blocks) {
+      const candidate = [...sheetBlocks, block];
+      if (sheetBlocks.length && getGroupLayout(candidate).size < 41) {
+        appendSheet(sheetBlocks, getGroupLayout(sheetBlocks));
+        sheetBlocks = [];
       }
-      continue;
+      sheetBlocks.push(block);
     }
+    if (sheetBlocks.length) appendSheet(sheetBlocks, getGroupLayout(sheetBlocks));
+    pages.appendChild(fragment);
+    fitCardText();
+    return;
+  }
 
-    const sheetBlocks = [block];
-    const next = blocks[index + 1];
-    // Tilpas kortstørrelsen, så de to grupper altid kan dele et ark.
-    if (printLayout === "two" && next?.group) {
-      sheetBlocks.push(next);
-      index++;
-    }
-    appendSheet(sheetBlocks, getGroupLayout(sheetBlocks));
+  for (const block of blocks) {
+    appendSheet([block], getGroupLayout([block], true));
   }
 
   pages.appendChild(fragment);
   fitCardText();
 }
 
-function getGroupLayout(blocks) {
+function getGroupLayout(blocks, largePortraits = false) {
   const mmPerPixel = 25.4 / 96;
   const padding = 20 * mmPerPixel;
   const headingHeight = 8;
   const cardCount = blocks.reduce((sum, block) => sum + block.cards.length, 0);
   let bestLayout;
+  const minimumRows = blocks.some((block) => block.cards.some((card) => card.overlay)) ? 1 : 6;
 
-  // Et lige antal kolonner holder billede og navn ved siden af hinanden.
+  // Enkeltgrupper afprøver alle kolonnetal for at få størst mulige billeder.
+  const firstColumnCount = largePortraits ? 1 : columnsPerPage;
+  const columnStep = largePortraits ? 1 : 2;
   const maxColumns = Math.max(columnsPerPage, Math.ceil(Math.sqrt(cardCount)) * 2);
-  for (let columns = columnsPerPage; columns <= maxColumns; columns += 2) {
-    const rows = Math.max(6, blocks.reduce((sum, block) => sum + Math.ceil(block.cards.length / columns), 0));
+  for (let columns = firstColumnCount; columns <= maxColumns; columns += columnStep) {
+    const rows = Math.max(minimumRows, blocks.reduce((sum, block) => sum + Math.ceil(block.cards.length / columns), 0));
     // Meget store grupper får også mindre mellemrum, så alt kan være på A4.
     const gap = Math.min(10, 140 / Math.max(rows, columns));
     const gapMm = gap * mmPerPixel;
     const width = (190 - padding - (columns - 1) * gapMm) / columns;
     const height = (277 - padding - blocks.length * headingHeight - (rows + blocks.length - 1) * gapMm) / rows;
-    const size = Math.floor(Math.min(41, width, height) * 10) / 10;
+    const size = Math.floor(Math.min(largePortraits ? Infinity : 41, width, height) * 10) / 10;
 
     if (!bestLayout || size > bestLayout.size) {
       bestLayout = { columns, rows, size, gap };
@@ -238,7 +245,7 @@ function getGroupLayout(blocks) {
 }
 
 function fitCardText() {
-  document.querySelectorAll(".card-front .explanation").forEach(fitTextToCard);
+  document.querySelectorAll(".card-front .explanation, .card-front .name-overlay").forEach(fitTextToCard);
 }
 
 function fitTextToCard(text) {
@@ -248,7 +255,9 @@ function fitTextToCard(text) {
   text.style.removeProperty("font-size");
   const card = text.closest(".square");
   const style = getComputedStyle(card);
-  const availableHeight = card.clientWidth - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+  const availableHeight = text.classList.contains("name-overlay")
+    ? card.clientWidth * 0.45
+    : card.clientWidth - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
   if (text.scrollHeight <= availableHeight) return;
 
   let min = 1;
@@ -301,7 +310,7 @@ function fillCard(explanation, value, pairedValue) {
 function createPage(blocks, isBack, batchNumber, layout = null) {
   const section = document.createElement("section");
   section.className = `card-page grid ${isBack ? "card-back" : "card-front"}`;
-  const label = layout ? blocks.map((block) => `Gruppe ${block.group}`).join(", ") : `Ark ${batchNumber}`;
+  const label = layout ? blocks.map((block) => block.group ? `Gruppe ${block.group}` : "Uden gruppe").join(", ") : `Ark ${batchNumber}`;
   section.setAttribute("aria-label", `${label}, ${isBack ? "bagside" : "forside"}`);
   const columns = layout?.columns ?? columnsPerPage;
   const rows = layout?.rows ?? cardsPerPage / columnsPerPage;
@@ -330,7 +339,7 @@ function createPage(blocks, isBack, batchNumber, layout = null) {
         // Reservér samme plads over kortene på bagsiden til dobbeltsidet print.
         heading.setAttribute("aria-hidden", "true");
       } else {
-        heading.textContent = `Gruppe ${block.group}`;
+        heading.textContent = block.group ? `Gruppe ${block.group}` : "Uden gruppe";
       }
       section.appendChild(heading);
     }
@@ -341,8 +350,15 @@ function createPage(blocks, isBack, batchNumber, layout = null) {
         const template = document.querySelector(isBack ? "#bagside" : "#forside");
         card = template.content.firstElementChild.cloneNode(true);
         if (!isBack) {
-          const { value, pairedValue } = block.cards[index];
+          const { value, pairedValue, overlay } = block.cards[index];
           fillCard(card.querySelector(".explanation"), value, pairedValue);
+          if (overlay) {
+            card.classList.add("portrait-card");
+            const name = document.createElement("div");
+            name.className = "name-overlay";
+            name.textContent = pairedValue;
+            card.appendChild(name);
+          }
         }
       } else {
         // Tomme positioner spejles også, både mellem grupper og nederst på arket.
